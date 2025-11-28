@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from app.api import product_routes
 from app.db.database import Base, engine
 from app.api import promotion_router
+from app.api.engine_router import router as engine_router
+
+
 
 
 # Create DB tables
@@ -11,6 +14,7 @@ app = FastAPI(title="Price Promotions Engine")
 
 app.include_router(product_routes.router)
 app.include_router(promotion_router.router)
+app.include_router(engine_router)
 
 @app.get("/")
 def root():
