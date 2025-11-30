@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN, ROUND_UP, ROUND_DOWN, ROUND_HALF_EVEN
 from typing import Dict
 
 # Currency exchange rates (base: INR)
@@ -101,12 +101,15 @@ def round_price(amount: Decimal, rounding_strategy: str = "half_up") -> Decimal:
     """
     rounding_map = {
         "half_up": ROUND_HALF_UP,
-        "half_down": Decimal.ROUND_HALF_DOWN,
-        "up": Decimal.ROUND_UP,
-        "down": Decimal.ROUND_DOWN,
-        "nearest": Decimal.ROUND_HALF_EVEN
+        "half_down": ROUND_HALF_DOWN,
+        "up": ROUND_UP,
+        "down": ROUND_DOWN,
+        "nearest": ROUND_HALF_EVEN
     }
     
     rounding = rounding_map.get(rounding_strategy, ROUND_HALF_UP)
     return amount.quantize(Decimal("0.01"), rounding=rounding)
+
+
+
 
