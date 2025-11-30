@@ -18,8 +18,19 @@ class PromotionBase(BaseModel):
 class PromotionCreate(PromotionBase):
     pass
 
-class PromotionUpdate(PromotionBase):
-    pass
+class PromotionUpdate(BaseModel):
+    name: str | None = None
+    discount_type: str | None = None
+    discount_value: float | None = None
+    buy_quantity: int | None = None
+    get_quantity: int | None = None
+    min_quantity: int | None = None
+    priority: int | None = None
+    stacking_enabled: bool | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    is_active: bool | None = None
+    product_id: int | None = None
 
 class PromotionResponse(PromotionBase):
     id: int
