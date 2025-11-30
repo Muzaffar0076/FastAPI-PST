@@ -7,6 +7,7 @@ from app.db.database import SessionLocal
 from app.services.promotion_scheduler import update_promotion_status
 from app.api.dashboard_router import router as dashboard_router
 from app.api.simulation_router import router as simulation_router
+from app.api.experiment_router import router as experiment_router
 
 
 
@@ -24,6 +25,7 @@ app.include_router(promotion_router.router)
 app.include_router(engine_router)
 app.include_router(dashboard_router)
 app.include_router(simulation_router)
+app.include_router(experiment_router)
 
 @app.get("/")
 def root():
