@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric
+from sqlalchemy import Column, Integer, String, Numeric, Boolean
 from app.db.database import Base
 
 class Product(Base):
@@ -8,5 +8,8 @@ class Product(Base):
     sku = Column(String, unique=True, nullable=False)
     title = Column(String, nullable=False)
     base_price = Column(Numeric(10, 2), nullable=False)
+    currency = Column(String, default="INR", nullable=False)  # ISO currency code
+    tax_rate = Column(Numeric(5, 2), default=0.0, nullable=False)  # Tax rate as percentage
+    tax_inclusive = Column(Boolean, default=False, nullable=False)  # True if price includes tax
     category = Column(String, nullable=True)
     stock = Column(Integer, default=0)
