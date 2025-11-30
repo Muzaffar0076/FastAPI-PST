@@ -83,7 +83,12 @@ def calculate_price_with_explanation(
             continue
 
         if promo.discount_type == "percentage":
-            discount = (current_price * Decimal(promo.discount_value / 100))
+            # For non-stacking promotions, calculate discount from base price
+            # For stacking promotions, calculate from current discounted price
+            if promo.stacking_enabled:
+                discount = (current_price * Decimal(promo.discount_value / 100))
+            else:
+                discount = (base_price * Decimal(promo.discount_value / 100))
             reason = f"Applied {promo.discount_value}% discount"
 
         elif promo.discount_type == "flat":
@@ -91,10 +96,12 @@ def calculate_price_with_explanation(
             reason = f"Applied flat discount of {promo.discount_value} per item"
 
         elif promo.discount_type == "bogo":
-            # BOGO: For "Buy X Get Y", customer gets Y free items for every X+Y items in cart
+            # BOGO: For "Buy X Get Y", customer gets Y free items for every (X+Y) items
+            # In a bundle of (X+Y) items, customer pays for X and gets Y free
             if promo.buy_quantity and promo.get_quantity:
-                sets = quantity // (promo.buy_quantity + promo.get_quantity)
-                free_items = sets * promo.get_quantity
+                bundle_size = promo.buy_quantity + promo.get_quantity
+                complete_bundles = quantity // bundle_size
+                free_items = complete_bundles * promo.get_quantity
                 discount = base_price_per_unit * free_items
                 reason = f"Applied BOGO: buy {promo.buy_quantity} get {promo.get_quantity} free"
 

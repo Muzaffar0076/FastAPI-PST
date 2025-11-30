@@ -15,6 +15,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database for each test"""
+    from app.core.cache import CacheService
+    # Clear cache before each test
+    CacheService.clear_all()
+
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
@@ -22,6 +26,8 @@ def db_session():
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+        # Clear cache after each test
+        CacheService.clear_all()
 
 
 @pytest.fixture(scope="function")

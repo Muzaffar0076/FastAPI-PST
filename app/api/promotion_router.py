@@ -14,6 +14,8 @@ router = APIRouter(prefix="/promotions", tags=["Promotions"])
 def create(data: PromotionCreate, db: Session = Depends(get_db)):
     try:
         return create_promotion(db, data)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Invalid product_id or promotion constraint violation")
 
