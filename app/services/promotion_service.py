@@ -1,9 +1,15 @@
 from sqlalchemy.orm import Session
 from app.models.promotion import Promotion
+from app.models.product import Product
 from app.schemas.promotion import PromotionCreate, PromotionUpdate
 from app.core.cache import CacheService
 
 def create_promotion(db: Session, data: PromotionCreate):
+    # Validate product exists
+    product = db.query(Product).filter(Product.id == data.product_id).first()
+    if not product:
+        raise ValueError(f"Product with id {data.product_id} does not exist")
+
     promo = Promotion(**data.dict())
     db.add(promo)
     db.commit()

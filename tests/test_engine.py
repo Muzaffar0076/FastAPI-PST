@@ -262,7 +262,8 @@ class TestBOGOCalculation:
         }
         client.post("/promotions/", json=promo_data)
 
-        # Buy 6 items: 6 // 2 = 3 sets, so 3 free items
+        # Buy 6 items: with "Buy 2 Get 1", bundle size = 3
+        # 6 // 3 = 2 complete bundles, so 2 free items
         request_data = {
             "product_id": product_id,
             "quantity": 6
@@ -272,8 +273,8 @@ class TestBOGOCalculation:
         assert response.status_code == 200
         data = response.json()
 
-        # Should get 3 free items
-        expected_discount = base_price * 3
+        # Should get 2 free items (2 complete bundles)
+        expected_discount = base_price * 2
         assert abs(data["discount_amount"] - expected_discount) < 0.01
 
     def test_bogo_insufficient_quantity(self, client, sample_product_data):
