@@ -3,6 +3,10 @@ from app.api import product_routes
 from app.db.database import Base, engine
 from app.api import promotion_router
 from app.api.engine_router import router as engine_router
+from app.db.database import SessionLocal
+from app.services.promotion_scheduler import update_promotion_status
+
+
 
 
 
@@ -19,3 +23,9 @@ app.include_router(engine_router)
 @app.get("/")
 def root():
     return {"message": "Welcome to Promotions Engine!"}
+
+@app.on_event("startup")
+def activate_promotion_scheduler():
+    db = SessionLocal()
+    update_promotion_status(db)
+    db.close()
