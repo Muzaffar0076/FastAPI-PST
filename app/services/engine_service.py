@@ -56,8 +56,9 @@ def calculate_price_with_explanation(
         max_discount_cap = Decimal(str(product.max_discount_cap)) * quantity
     
     promos = db.query(Promotion).filter(
-        Promotion.product_id == product_id,
         Promotion.is_active == True
+    ).filter(
+        (Promotion.product_id == product_id) | (Promotion.applies_to_category == True)
     ).order_by(Promotion.priority.asc()).all()
 
     explanation = []
@@ -78,8 +79,17 @@ def calculate_price_with_explanation(
             explanation.append(f"Rule Skipped: {promo.name} - expired")
             continue
 
+        if promo.applies_to_category:
+            if not promo.category_filter or promo.category_filter != product.category:
+                explanation.append(f"Rule Skipped: {promo.name} - category mismatch")
+                continue
+
         if promo.min_quantity and quantity < promo.min_quantity:
             explanation.append(f"Rule Skipped: {promo.name} - minimum quantity {promo.min_quantity} required")
+            continue
+
+        if promo.min_amount and float(base_price) < promo.min_amount:
+            explanation.append(f"Rule Skipped: {promo.name} - minimum amount {promo.min_amount} required")
             continue
 
         if promo.discount_type == "percentage":
