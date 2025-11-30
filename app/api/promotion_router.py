@@ -7,6 +7,7 @@ from app.services.promotion_service import (
     create_promotion, update_promotion, delete_promotion,
     get_all_promotions, get_promotion
 )
+from app.services.validation_service import PromotionValidator
 
 router = APIRouter(prefix="/promotions", tags=["Promotions"])
 
@@ -15,7 +16,7 @@ def create(data: PromotionCreate, db: Session = Depends(get_db)):
     try:
         return create_promotion(db, data)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Invalid product_id or promotion constraint violation")
 
@@ -32,10 +33,13 @@ def get(promo_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{promo_id}", response_model=PromotionResponse)
 def update(promo_id: int, data: PromotionUpdate, db: Session = Depends(get_db)):
-    promo = update_promotion(db, promo_id, data)
-    if not promo:
-        raise HTTPException(status_code=404, detail="Promotion not found")
-    return promo
+    try:
+        promo = update_promotion(db, promo_id, data)
+        if not promo:
+            raise HTTPException(status_code=404, detail="Promotion not found")
+        return promo
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{promo_id}")
 def delete(promo_id: int, db: Session = Depends(get_db)):
@@ -43,3 +47,8 @@ def delete(promo_id: int, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Promotion not found")
     return {"message": "Promotion deleted successfully"}
+
+@router.post("/validate")
+def validate(data: PromotionCreate, db: Session = Depends(get_db)):
+    validation_result = PromotionValidator.validate_promotion(db, data)
+    return validation_result
