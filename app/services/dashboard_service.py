@@ -27,16 +27,9 @@ class DashboardService:
             Promotion.start_date > today
         ).count()
 
-        # Optional: If pricing requests table exists
-        try:
-            total_pricing_requests = self.db.query(PricingRequest).count()
-        except Exception:
-            total_pricing_requests = None
-
         return {
             "total_products": total_products,
             "active_promotions": active_promotions,
             "expired_promotions": expired_promotions,
             "upcoming_promotions": upcoming_promotions,
-            "total_pricing_requests": total_pricing_requests,
         }
