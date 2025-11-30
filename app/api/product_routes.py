@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.db.database import get_db
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.services.product_service import (
@@ -12,7 +13,10 @@ router = APIRouter(prefix="/products", tags=["Products"])
 
 @router.post("/", response_model=ProductResponse)
 def create(product: ProductCreate, db: Session = Depends(get_db)):
-    return create_product(db, product)
+    try:
+        return create_product(db, product)
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Product with this SKU already exists")
 
 
 @router.get("/", response_model=list[ProductResponse])
