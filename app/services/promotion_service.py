@@ -5,16 +5,17 @@ from app.schemas.promotion import PromotionCreate, PromotionUpdate
 from app.core.cache import CacheService
 
 def create_promotion(db: Session, data: PromotionCreate):
-    # Validate product exists
-    product = db.query(Product).filter(Product.id == data.product_id).first()
-    if not product:
-        raise ValueError(f"Product with id {data.product_id} does not exist")
+    if data.product_id is not None:
+        product = db.query(Product).filter(Product.id == data.product_id).first()
+        if not product:
+            raise ValueError(f"Product with id {data.product_id} does not exist")
 
-    promo = Promotion(**data.dict())
+    promo = Promotion(**data.model_dump())
     db.add(promo)
     db.commit()
     db.refresh(promo)
-    CacheService.invalidate_product(promo.product_id)
+    if promo.product_id:
+        CacheService.invalidate_product(promo.product_id)
     return promo
 
 def update_promotion(db: Session, promo_id: int, data: PromotionUpdate):
@@ -22,11 +23,12 @@ def update_promotion(db: Session, promo_id: int, data: PromotionUpdate):
     if not promo:
         return None
     product_id = promo.product_id
-    for key, value in data.dict(exclude_unset=True).items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         setattr(promo, key, value)
     db.commit()
     db.refresh(promo)
-    CacheService.invalidate_product(product_id)
+    if product_id:
+        CacheService.invalidate_product(product_id)
     return promo
 
 def delete_promotion(db: Session, promo_id: int):
@@ -36,7 +38,8 @@ def delete_promotion(db: Session, promo_id: int):
     product_id = promo.product_id
     db.delete(promo)
     db.commit()
-    CacheService.invalidate_product(product_id)
+    if product_id:
+        CacheService.invalidate_product(product_id)
     return True
 
 def get_all_promotions(db: Session):
