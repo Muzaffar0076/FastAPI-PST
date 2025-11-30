@@ -8,7 +8,6 @@ def create_product(db: Session, data: ProductCreate):
     db.add(product)
     db.commit()
     db.refresh(product)
-    # Cache will be populated on first price computation
     return product
 
 def update_product(db: Session, product_id: int, data: ProductUpdate):
@@ -19,7 +18,6 @@ def update_product(db: Session, product_id: int, data: ProductUpdate):
         setattr(product, key, value)
     db.commit()
     db.refresh(product)
-    # Invalidate cache for this product
     CacheService.invalidate_product(product_id)
     return product
 
@@ -29,7 +27,6 @@ def delete_product(db: Session, product_id: int):
         return False
     db.delete(product)
     db.commit()
-    # Invalidate cache for this product
     CacheService.invalidate_product(product_id)
     return True
 
@@ -38,4 +35,7 @@ def get_all_products(db: Session):
 
 def get_product(db: Session, product_id: int):
     return db.query(Product).filter(Product.id == product_id).first()
+
+
+
 
