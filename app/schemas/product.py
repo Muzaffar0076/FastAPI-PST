@@ -8,6 +8,7 @@ class ProductBase(BaseModel):
     currency: str = "INR"  # ISO currency code
     tax_rate: Decimal = Decimal("0.0")  # Tax rate as percentage
     tax_inclusive: bool = False  # True if price includes tax
+    max_discount_cap: Decimal | None = None  # Maximum discount amount allowed (None = no cap)
     category: str | None = None
     stock: int = 0
 
@@ -23,6 +24,7 @@ class ProductUpdate(BaseModel):
     currency: str | None = None
     tax_rate: Decimal | None = None
     tax_inclusive: bool | None = None
+    max_discount_cap: Decimal | None = None
     category: str | None = None
     stock: int | None = None
 

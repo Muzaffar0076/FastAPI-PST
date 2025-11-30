@@ -11,5 +11,6 @@ class Product(Base):
     currency = Column(String, default="INR", nullable=False)  # ISO currency code
     tax_rate = Column(Numeric(5, 2), default=0.0, nullable=False)  # Tax rate as percentage
     tax_inclusive = Column(Boolean, default=False, nullable=False)  # True if price includes tax
+    max_discount_cap = Column(Numeric(10, 2), nullable=True)  # Maximum discount amount allowed (None = no cap)
     category = Column(String, nullable=True)
     stock = Column(Integer, default=0)
