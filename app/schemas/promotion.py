@@ -4,16 +4,19 @@ from pydantic import BaseModel
 class PromotionBase(BaseModel):
     name: str
     discount_type: str
-    discount_value: float
+    discount_value: float | None = None
     buy_quantity: int | None = None
     get_quantity: int | None = None
     min_quantity: int | None = None
-    priority: int = 0  # Lower number = higher priority (0 is highest)
-    stacking_enabled: bool = False  # Can stack with other promotions
+    min_amount: float | None = None
+    category_filter: str | None = None
+    applies_to_category: bool = False
+    priority: int = 0
+    stacking_enabled: bool = False
     start_date: datetime
     end_date: datetime
     is_active: bool = True
-    product_id: int
+    product_id: int | None = None
 
 class PromotionCreate(PromotionBase):
     pass
@@ -25,6 +28,9 @@ class PromotionUpdate(BaseModel):
     buy_quantity: int | None = None
     get_quantity: int | None = None
     min_quantity: int | None = None
+    min_amount: float | None = None
+    category_filter: str | None = None
+    applies_to_category: bool | None = None
     priority: int | None = None
     stacking_enabled: bool | None = None
     start_date: datetime | None = None
