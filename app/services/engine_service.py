@@ -5,7 +5,7 @@ from decimal import Decimal
 from datetime import datetime
 from app.core.cache import CacheService
 from app.core.currency import convert_currency, calculate_tax, round_price
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 def calculate_price_with_explanation(
     db: Session, 
@@ -17,6 +17,7 @@ def calculate_price_with_explanation(
 ) -> Optional[Dict[str, Any]]:
     """
     Calculate price with promotions, caching, currency conversion, and tax handling.
+    Implements rule precedence, promotion stacking, and maximum discount caps.
     
     Args:
         db: Database session
@@ -50,32 +51,34 @@ def calculate_price_with_explanation(
     if not product:
         return None
     
-    # Use base_price (fixing the bug)
+    # Use base_price
     base_price_per_unit = Decimal(str(product.base_price))
     base_price = base_price_per_unit * quantity
-    best_discount = Decimal(0)
-    best_promo = None
-    explanation = []
     
-    # Get active promotions
+    # Get max discount cap
+    max_discount_cap = None
+    if product.max_discount_cap is not None:
+        max_discount_cap = Decimal(str(product.max_discount_cap)) * quantity
+    
+    # Get active promotions and sort by priority (lower number = higher priority, 0 is highest)
     promos = db.query(Promotion).filter(
         Promotion.product_id == product_id,
         Promotion.is_active == True
-    ).all()
+    ).order_by(Promotion.priority.asc()).all()
     
-    # Check min_quantity requirement
-    for promo in promos:
-        if promo.min_quantity and quantity < promo.min_quantity:
-            explanation.append(f"Rule Skipped: {promo.name} - minimum quantity {promo.min_quantity} required")
-            continue
+    explanation = []
+    applied_promotions: List[Dict[str, Any]] = []
+    total_discount = Decimal(0)
+    current_price = base_price  # Price after each promotion is applied
     
-    # Evaluate promotions
+    now = datetime.utcnow()
+    
+    # Evaluate promotions in priority order
     for promo in promos:
         discount = Decimal(0)
         reason = ""
         
         # Check if promotion is active within dates
-        now = datetime.utcnow()
         if promo.start_date and promo.start_date > now:
             explanation.append(f"Rule Skipped: {promo.name} - not started yet")
             continue
@@ -83,37 +86,66 @@ def calculate_price_with_explanation(
             explanation.append(f"Rule Skipped: {promo.name} - expired")
             continue
         
-        # Check min_quantity
+        # Check min_quantity requirement
         if promo.min_quantity and quantity < promo.min_quantity:
-            continue  # Already logged above
+            explanation.append(f"Rule Skipped: {promo.name} - minimum quantity {promo.min_quantity} required")
+            continue
         
-        # Percentage discount
+        # Calculate discount based on type
         if promo.discount_type == "percentage":
-            discount = (base_price * Decimal(promo.discount_value / 100))
+            # Percentage discount applied to current price (after previous discounts if stacking)
+            discount = (current_price * Decimal(promo.discount_value / 100))
             reason = f"Applied {promo.discount_value}% discount"
         
-        # Flat discount
         elif promo.discount_type == "flat":
+            # Flat discount per item
             discount = Decimal(promo.discount_value) * quantity
             reason = f"Applied flat discount of {promo.discount_value} per item"
         
-        # BOGO / Buy X Get Y
         elif promo.discount_type == "bogo":
+            # BOGO / Buy X Get Y
             if promo.buy_quantity and promo.get_quantity:
                 free_items = (quantity // promo.buy_quantity) * promo.get_quantity
                 discount = base_price_per_unit * free_items
                 reason = f"Applied BOGO: buy {promo.buy_quantity} get {promo.get_quantity} free"
         
-        # Track best discount
-        if discount > best_discount:
-            best_discount = discount
-            best_promo = promo
-            explanation.append(f"Rule Applied: {promo.name} - {reason}")
-        else:
-            explanation.append(f"Rule Skipped: {promo.name} - lower discount than best applied")
+        # Apply promotion based on stacking rules
+        if discount > 0:
+            if promo.stacking_enabled:
+                # Stacking enabled: add to total discount
+                total_discount += discount
+                current_price = base_price - total_discount
+                applied_promotions.append({
+                    "name": promo.name,
+                    "discount": float(discount),
+                    "reason": reason,
+                    "priority": promo.priority
+                })
+                explanation.append(f"Rule Applied (Stacked): {promo.name} - {reason} (Priority: {promo.priority})")
+            else:
+                # No stacking: only apply if this discount is better than current total
+                if discount > total_discount:
+                    total_discount = discount
+                    current_price = base_price - total_discount
+                    applied_promotions = [{
+                        "name": promo.name,
+                        "discount": float(discount),
+                        "reason": reason,
+                        "priority": promo.priority
+                    }]
+                    explanation.append(f"Rule Applied: {promo.name} - {reason} (Priority: {promo.priority})")
+                else:
+                    explanation.append(f"Rule Skipped: {promo.name} - lower discount than current best (Priority: {promo.priority})")
+    
+    # Apply maximum discount cap if set
+    if max_discount_cap is not None and total_discount > max_discount_cap:
+        original_discount = total_discount
+        total_discount = max_discount_cap
+        explanation.append(f"Discount capped: Original discount {float(original_discount)} capped to {float(max_discount_cap)}")
+        current_price = base_price - total_discount
     
     # Calculate price after discount
-    price_after_discount = base_price - best_discount
+    price_after_discount = base_price - total_discount
     
     # Handle tax
     tax_inclusive = include_tax if include_tax is not None else product.tax_inclusive
@@ -130,17 +162,20 @@ def calculate_price_with_explanation(
         base_amount_converted = convert_currency(tax_details["base_amount"], product_currency, display_currency)
         tax_amount_converted = convert_currency(tax_details["tax_amount"], product_currency, display_currency)
         total_amount_converted = convert_currency(tax_details["total_amount"], product_currency, display_currency)
-        discount_converted = convert_currency(best_discount, product_currency, display_currency)
+        discount_converted = convert_currency(total_discount, product_currency, display_currency)
         original_converted = convert_currency(base_price, product_currency, display_currency)
     else:
         base_amount_converted = tax_details["base_amount"]
         tax_amount_converted = tax_details["tax_amount"]
         total_amount_converted = tax_details["total_amount"]
-        discount_converted = best_discount
+        discount_converted = total_discount
         original_converted = base_price
     
     # Apply rounding strategy
     final_price = round_price(total_amount_converted, rounding_strategy)
+    
+    # Get primary promotion name (highest priority or first applied)
+    primary_promotion = applied_promotions[0]["name"] if applied_promotions else None
     
     result = {
         "original_price": float(round_price(original_converted, rounding_strategy)),
@@ -148,7 +183,8 @@ def calculate_price_with_explanation(
         "tax_amount": float(round_price(tax_amount_converted, rounding_strategy)),
         "final_price": float(final_price),
         "discount_amount": float(round_price(discount_converted, rounding_strategy)),
-        "applied_promotion": best_promo.name if best_promo else None,
+        "applied_promotion": primary_promotion,
+        "applied_promotions": applied_promotions,  # List of all applied promotions
         "currency": display_currency,
         "tax_rate": float(tax_rate),
         "tax_inclusive": tax_inclusive,
