@@ -2,14 +2,4 @@
 __pycache__/
 *.pyc
 .env
-test.db
-CURRENT_PROJECT_STATUS.md
-PRD_COMPLETION_ANALYSIS.md
-PRIORITY_EXAMPLES.md
-requirements.txt
-RULE_ENGINE_ENHANCEMENTS.md
-TEST_FIXES_SUMMARY.md
-TEST_SUITE_SUMMARY.md
-WEEK3_IMPLEMENTATION.md
-test_promotions.db
-test.db
+
