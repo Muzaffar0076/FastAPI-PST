@@ -4,10 +4,9 @@ from app.db.database import Base
 from datetime import datetime
 
 class PriceAuditLog(Base):
-    __tablename__ = "price_audit_logs"
-
+    __tablename__ = 'price_audit_logs'
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
     quantity = Column(Integer, nullable=False)
     original_price = Column(Float, nullable=False)
     final_price = Column(Float, nullable=False)
@@ -22,5 +21,4 @@ class PriceAuditLog(Base):
     request_id = Column(String, nullable=True)
     extra_data = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    product = relationship("Product")
+    product = relationship('Product')

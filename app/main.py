@@ -9,18 +9,8 @@ from app.api.dashboard_router import router as dashboard_router
 from app.api.simulation_router import router as simulation_router
 from app.api.experiment_router import router as experiment_router
 from app.api.audit_router import router as audit_router
-
-
-
-
-
-
-
-# Create DB tables
 Base.metadata.create_all(bind=engine)
-
-app = FastAPI(title="Price Promotions Engine")
-
+app = FastAPI(title='Price Promotions Engine')
 app.include_router(product_routes.router)
 app.include_router(promotion_router.router)
 app.include_router(engine_router)
@@ -29,11 +19,11 @@ app.include_router(simulation_router)
 app.include_router(experiment_router)
 app.include_router(audit_router)
 
-@app.get("/")
+@app.get('/')
 def root():
-    return {"message": "Welcome to Promotions Engine!"}
+    return {'message': 'Welcome to Promotions Engine!'}
 
-@app.on_event("startup")
+@app.on_event('startup')
 def activate_promotion_scheduler():
     db = SessionLocal()
     update_promotion_status(db)

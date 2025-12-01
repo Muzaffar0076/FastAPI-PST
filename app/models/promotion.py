@@ -3,8 +3,7 @@ from sqlalchemy.orm import relationship
 from app.db.database import Base
 
 class Promotion(Base):
-    __tablename__ = "promotions"
-
+    __tablename__ = 'promotions'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     discount_type = Column(String, nullable=False)
@@ -20,6 +19,5 @@ class Promotion(Base):
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
     is_active = Column(Boolean, default=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
-
-    product = relationship("Product")
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=True)
+    product = relationship('Product')

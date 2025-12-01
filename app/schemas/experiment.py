@@ -2,11 +2,10 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-
 class ExperimentBase(BaseModel):
     name: str
     description: Optional[str] = None
-    experiment_type: str = "promotion_comparison"
+    experiment_type: str = 'promotion_comparison'
     control_config: Dict[str, Any]
     variant_config: Dict[str, Any]
     traffic_split: float = 50.0
@@ -15,10 +14,8 @@ class ExperimentBase(BaseModel):
     is_active: bool = False
     product_id: Optional[int] = None
 
-
 class ExperimentCreate(ExperimentBase):
     pass
-
 
 class ExperimentUpdate(BaseModel):
     name: Optional[str] = None
@@ -32,7 +29,6 @@ class ExperimentUpdate(BaseModel):
     is_active: Optional[bool] = None
     product_id: Optional[int] = None
 
-
 class ExperimentResponse(ExperimentBase):
     id: int
     status: str
@@ -43,7 +39,6 @@ class ExperimentResponse(ExperimentBase):
     class Config:
         from_attributes = True
 
-
 class ExperimentResultCreate(BaseModel):
     experiment_id: int
     variant: str
@@ -53,7 +48,6 @@ class ExperimentResultCreate(BaseModel):
     final_price: float
     discount_amount: float
     extra_data: Optional[Dict[str, Any]] = None
-
 
 class ExperimentResultResponse(BaseModel):
     id: int
