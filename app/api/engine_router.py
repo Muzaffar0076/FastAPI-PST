@@ -1,25 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.engine import PriceRequest
 from app.services.engine_service import calculate_price_with_explanation
 from app.core.cache import CacheService
+import uuid
 
 router = APIRouter(prefix="/engine", tags=["Price Engine"])
 
 @router.post("/compute")
-def compute(data: PriceRequest, db: Session = Depends(get_db)):
-    """
-    Compute final price with promotions, currency conversion, and tax handling.
-    Results are cached for 1 hour for performance.
-    """
+def compute(data: PriceRequest, request: Request, db: Session = Depends(get_db)):
+    request_id = str(uuid.uuid4())
+    client_host = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
     result = calculate_price_with_explanation(
-        db, 
-        data.product_id, 
+        db,
+        data.product_id,
         data.quantity,
         target_currency=data.target_currency,
         include_tax=data.include_tax,
-        rounding_strategy=data.rounding_strategy
+        rounding_strategy=data.rounding_strategy,
+        enable_audit=True,
+        ip_address=client_host,
+        user_agent=user_agent,
+        request_id=request_id
     )
     if not result:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -37,14 +42,12 @@ def clear_all_cache():
     from app.core.cache import REDIS_AVAILABLE, redis_client, _memory_cache
     try:
         if REDIS_AVAILABLE:
-            # Clear all keys starting with "price:"
             count = 0
             for key in redis_client.scan_iter(match="price:*"):
                 redis_client.delete(key)
                 count += 1
             return {"message": "All cache cleared", "keys_deleted": count}
         else:
-            # Clear in-memory cache
             keys = [k for k in _memory_cache.keys() if k.startswith("price:")]
             for key in keys:
                 _memory_cache.pop(key, None)
