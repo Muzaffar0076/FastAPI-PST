@@ -5,15 +5,21 @@ from decimal import Decimal
 from datetime import datetime
 from app.core.cache import CacheService
 from app.core.currency import convert_currency, calculate_tax, round_price
+from app.services.audit_service import AuditService
 from typing import Optional, Dict, Any, List
 
 def calculate_price_with_explanation(
-    db: Session, 
-    product_id: int, 
+    db: Session,
+    product_id: int,
     quantity: int,
     target_currency: Optional[str] = None,
     include_tax: Optional[bool] = None,
-    rounding_strategy: str = "half_up"
+    rounding_strategy: str = "half_up",
+    enable_audit: bool = True,
+    user_id: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    request_id: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Calculate price with promotions, caching, currency conversion, and tax handling.
@@ -93,8 +99,6 @@ def calculate_price_with_explanation(
             continue
 
         if promo.discount_type == "percentage":
-            # For non-stacking promotions, calculate discount from base price
-            # For stacking promotions, calculate from current discounted price
             if promo.stacking_enabled:
                 discount = (current_price * Decimal(promo.discount_value / 100))
             else:
@@ -106,8 +110,6 @@ def calculate_price_with_explanation(
             reason = f"Applied flat discount of {promo.discount_value} per item"
 
         elif promo.discount_type == "bogo":
-            # BOGO: For "Buy X Get Y", customer gets Y free items for every (X+Y) items
-            # In a bundle of (X+Y) items, customer pays for X and gets Y free
             if promo.buy_quantity and promo.get_quantity:
                 bundle_size = promo.buy_quantity + promo.get_quantity
                 complete_bundles = quantity // bundle_size
@@ -189,5 +191,20 @@ def calculate_price_with_explanation(
     }
 
     CacheService.set(cache_key, result, ttl=3600)
+
+    if enable_audit and not cached_result:
+        try:
+            AuditService.log_price_calculation(
+                db=db,
+                product_id=product_id,
+                quantity=quantity,
+                pricing_result=result,
+                user_id=user_id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                request_id=request_id
+            )
+        except Exception:
+            pass
 
     return result
