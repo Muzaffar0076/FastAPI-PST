@@ -3,3 +3,13 @@ __pycache__/
 *.pyc
 .env
 
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Test databases
+*.db
+test.db
+test_promotions.db
+
