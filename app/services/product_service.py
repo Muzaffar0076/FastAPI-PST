@@ -35,7 +35,3 @@ def get_all_products(db: Session):
 
 def get_product(db: Session, product_id: int):
     return db.query(Product).filter(Product.id == product_id).first()
-
-
-
-

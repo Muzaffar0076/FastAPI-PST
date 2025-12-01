@@ -40,5 +40,6 @@ class PromotionUpdate(BaseModel):
 
 class PromotionResponse(PromotionBase):
     id: int
+
     class Config:
         orm_mode = True
